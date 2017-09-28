@@ -29,7 +29,6 @@ import org.fenixedu.commons.i18n.LocalizedString.Builder;
 import org.fenixedu.ulisboa.specifications.domain.evaluation.EvaluationComparator;
 import org.fenixedu.ulisboa.specifications.domain.studentCurriculum.CreditsReasonType;
 import org.fenixedu.ulisboa.specifications.domain.studentCurriculum.CurriculumAggregator;
-import org.fenixedu.ulisboa.specifications.domain.studentCurriculum.CurriculumAggregatorEntry;
 import org.fenixedu.ulisboa.specifications.domain.studentCurriculum.CurriculumAggregatorServices;
 import org.fenixedu.ulisboa.specifications.domain.studentCurriculum.CurriculumLineExtendedInformation;
 import org.fenixedu.ulisboa.specifications.util.ULisboaSpecificationsUtil;
@@ -81,19 +80,17 @@ abstract public class CurriculumLineServices {
                 .getCurricularYear();
     }
 
-    static public void updateAggregatorEvaluation(final CurriculumLine curriculumLine) {
-        if (CurriculumAggregatorServices.isAggregationsActive(curriculumLine.getExecutionYear())) {
+    static public void updateAggregatorEvaluation(final CurriculumLine line) {
+        if (CurriculumAggregatorServices.isAggregationsActive(line.getExecutionYear())) {
 
-            final Context context = CurriculumAggregatorServices.getContext(curriculumLine);
-            if (context != null) {
+            // CAN NOT update evaluations on it self, so WAS explicitly searching for an entry and it's aggregator
+            // BUT with different configurations per year we cannot depend on direct relation:
+            // AggregatorEntry for a given CurriculumLine may not be of the same year of the Aggregator to be updated
+            final CurriculumAggregator aggregator = CurriculumAggregatorServices.getAggregationRoots(line).stream()
+                    .filter(i -> i.getContext().getChildDegreeModule() != line.getDegreeModule()).findFirst().orElse(null);
 
-                // CAN NOT update evaluations on it self, so must explicitly check for an entry and it's aggregator
-                final CurriculumAggregatorEntry entry = context.getCurriculumAggregatorEntry();
-                final CurriculumAggregator aggregator = entry == null ? null : entry.getAggregator();
-
-                if (aggregator != null) {
-                    aggregator.updateEvaluation(curriculumLine.getStudentCurricularPlan());
-                }
+            if (aggregator != null) {
+                aggregator.updateEvaluation(line.getStudentCurricularPlan());
             }
         }
     }

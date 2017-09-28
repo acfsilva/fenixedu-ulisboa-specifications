@@ -25,6 +25,7 @@
  */
 package org.fenixedu.ulisboa.specifications.domain.studentCurriculum;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -39,8 +40,6 @@ import org.fenixedu.academic.domain.EvaluationSeason;
 import org.fenixedu.academic.domain.ExecutionSemester;
 import org.fenixedu.academic.domain.ExecutionYear;
 import org.fenixedu.academic.domain.StudentCurricularPlan;
-import org.fenixedu.academic.domain.curricularRules.CurricularRuleType;
-import org.fenixedu.academic.domain.curricularRules.DegreeModulesSelectionLimit;
 import org.fenixedu.academic.domain.degreeStructure.Context;
 import org.fenixedu.academic.domain.degreeStructure.CourseGroup;
 import org.fenixedu.academic.domain.degreeStructure.DegreeModule;
@@ -80,14 +79,59 @@ abstract public class CurriculumAggregatorServices {
                 && (year == null || getCurriculumAggregatorFirstExecutionYear().isBeforeOrEquals(year));
     }
 
+    static public CurriculumAggregator getAggregationRoot(final CurriculumLine line) {
+        final Set<CurriculumAggregator> aggregationRoots = getAggregationRoots(line);
+        return aggregationRoots.isEmpty() ? null : aggregationRoots.iterator().next();
+    }
+
+    static public Set<CurriculumAggregator> getAggregationRoots(final CurriculumLine line) {
+        // essential to be a linked set, order matters!!
+        final Set<CurriculumAggregator> result = Sets.newLinkedHashSet();
+
+        final Context context = getContext(line);
+        final ExecutionYear year = line.getExecutionYear();
+
+        if (context != null) {
+
+            for (final CurriculumAggregator contemporaryRoot : getAggregationRoots(context, year)) {
+
+                final DegreeModule rootModule = contemporaryRoot.getContext().getChildDegreeModule();
+
+                // itself should be taken into account in the same year, so we add it immediately
+                if (rootModule == line.getDegreeModule()) {
+                    result.add(contemporaryRoot);
+
+                } else {
+
+                    final List<DegreeModule> possibleModules = context.getCurriculumAggregatorEntrySet().stream()
+                            .map(i -> i.getAggregator().getContext().getChildDegreeModule()).collect(Collectors.toList());
+
+                    final List<CurriculumLine> possibleLines = line.getStudentCurricularPlan().getAllCurriculumLines().stream()
+                            .filter(i -> possibleModules.contains(i.getDegreeModule())
+                                    && i.getExecutionYear().isBeforeOrEquals(year))
+                            .collect(Collectors.toList());
+
+                    final CurriculumLine rootLine =
+                            possibleLines.stream().max(Comparator.comparing(CurriculumLine::getExecutionPeriod)).orElse(null);
+                    final CurriculumAggregator root = getAggregator(rootLine);
+                    if (root != null) {
+                        result.add(root);
+                    }
+                }
+            }
+        }
+
+        return result;
+    }
+
     /**
      * Tries to find a Aggregator in the following order:
      * 
      * 1) if Context has a Aggregator, return it;
      * 2) if Context has an Entry, return it's Aggregator
      */
-    static public CurriculumAggregator getAggregationRoot(final Context input) {
-        final Set<CurriculumAggregator> aggregationRoots = getAggregationRoots(input);
+    static public CurriculumAggregator getAggregationRoot(final Context context, final ExecutionYear year) {
+        final Set<CurriculumAggregator> aggregationRoots = getAggregationRoots(context, year);
         return aggregationRoots.isEmpty() ? null : aggregationRoots.iterator().next();
     }
 
@@ -96,18 +140,18 @@ abstract public class CurriculumAggregatorServices {
      * 1) if Context has a Aggregator, return it;
      * 2) if Context has an Entry, return it's Aggregator
      */
-    static public Set<CurriculumAggregator> getAggregationRoots(final Context input) {
+    static public Set<CurriculumAggregator> getAggregationRoots(final Context context, final ExecutionYear year) {
         // essential to be a linked set, order matters!!
         final Set<CurriculumAggregator> result = Sets.newLinkedHashSet();
 
-        if (input != null) {
+        if (context != null) {
 
-            CurriculumAggregator aggregator = input.getCurriculumAggregator();
+            CurriculumAggregator aggregator = getAggregator(context, year);
             if (aggregator != null) {
                 result.add(aggregator);
             }
 
-            final CurriculumAggregatorEntry entry = input.getCurriculumAggregatorEntry();
+            final CurriculumAggregatorEntry entry = getAggregatorEntry(context, year);
             aggregator = entry == null ? null : entry.getAggregator();
             if (aggregator != null) {
                 result.add(aggregator);
@@ -117,17 +161,39 @@ abstract public class CurriculumAggregatorServices {
         return result;
     }
 
-    static public Context getContext(final CurriculumModule input) {
-        Context result = null;
+    static public CurriculumAggregator getAggregator(final CurriculumLine line) {
+        return getAggregator(getContext(line), line.getExecutionYear());
+    }
 
-        if (input != null) {
-            result = input.isLeaf() ? getContext((CurriculumLine) input) : getContext((CurriculumGroup) input);
+    static public CurriculumAggregator getAggregator(final Context context, final ExecutionYear year) {
+        CurriculumAggregator result = null;
+
+        if (context != null && year != null) {
+
+            result = context.getCurriculumAggregatorSet().stream().filter(i -> i.getSince().isBeforeOrEquals(year))
+                    .max(Comparator.comparing(CurriculumAggregator::getSince)).orElse(null);
         }
 
         return result;
     }
 
-    static private Context getContext(final CurriculumLine input) {
+    static public CurriculumAggregatorEntry getAggregatorEntry(final CurriculumLine line) {
+        return getAggregatorEntry(getContext(line), line.getExecutionYear());
+    }
+
+    static public CurriculumAggregatorEntry getAggregatorEntry(final Context context, final ExecutionYear year) {
+        CurriculumAggregatorEntry result = null;
+
+        if (context != null && year != null) {
+
+            result = context.getCurriculumAggregatorEntrySet().stream().filter(i -> i.getSince().isBeforeOrEquals(year))
+                    .max(Comparator.comparing(CurriculumAggregatorEntry::getSince)).orElse(null);
+        }
+
+        return result;
+    }
+
+    static public Context getContext(final CurriculumLine input) {
         Context result = null;
 
         if (input != null) {
@@ -143,17 +209,6 @@ abstract public class CurriculumAggregatorServices {
 
             // Passing an execution semester just to try to capture less possible contexts
             result = getContext(degreeModule, input.getExecutionPeriod());
-        }
-
-        return result;
-    }
-
-    static private Context getContext(final CurriculumGroup input) {
-        Context result = null;
-
-        if (input != null) {
-            result = getContext(input.getDegreeModule(),
-                    input.getApprovedCurriculumLinesLastExecutionYear().getFirstExecutionPeriod());
         }
 
         return result;
@@ -221,7 +276,7 @@ abstract public class CurriculumAggregatorServices {
 
                     for (final CurricularCourse iter : competence.getAssociatedCurricularCoursesSet()) {
                         final Context context = getContext(iter, (ExecutionSemester) null);
-                        if (context != null && context.getCurriculumAggregatorEntry() != null) {
+                        if (context != null && !context.getCurriculumAggregatorEntrySet().isEmpty()) {
                             return true;
                         }
                     }
@@ -232,20 +287,20 @@ abstract public class CurriculumAggregatorServices {
         return false;
     }
 
-    static private Set<Context> collectEnrolmentMasterContexts(final Context context) {
+    static private Set<Context> collectEnrolmentMasterContexts(final Context context, final ExecutionYear year) {
         final Set<Context> result = Sets.newLinkedHashSet();
 
-        for (final CurriculumAggregator aggregator : getAggregationRoots(context)) {
+        for (final CurriculumAggregator aggregator : getAggregationRoots(context, year)) {
             result.addAll(collectEnrolmentContexts(aggregator, CurriculumAggregator::getEnrolmentMasterContexts));
         }
 
         return result;
     }
 
-    static private Set<Context> collectEnrolmentSlaveContexts(final Context context) {
+    static private Set<Context> collectEnrolmentSlaveContexts(final Context context, final ExecutionYear year) {
         final Set<Context> result = Sets.newLinkedHashSet();
 
-        for (final CurriculumAggregator aggregator : getAggregationRoots(context)) {
+        for (final CurriculumAggregator aggregator : getAggregationRoots(context, year)) {
             result.addAll(collectEnrolmentContexts(aggregator, CurriculumAggregator::getEnrolmentSlaveContexts));
         }
 
@@ -263,7 +318,7 @@ abstract public class CurriculumAggregatorServices {
             result.addAll(contexts);
 
             for (final Context context : contexts) {
-                for (final CurriculumAggregator aggregator : getAggregationRoots(context)) {
+                for (final CurriculumAggregator aggregator : getAggregationRoots(context, input.getSince())) {
 
                     if (aggregator != input) {
                         result.addAll(collectEnrolmentContexts(aggregator, function));
@@ -278,13 +333,13 @@ abstract public class CurriculumAggregatorServices {
     static public boolean isAggregationEnroled(final Context context, final StudentCurricularPlan plan,
             final ExecutionSemester semester) {
 
-        if (getAggregationRoot(context) == null) {
+        final ExecutionYear year = semester == null ? null : semester.getExecutionYear();
+        if (getAggregationRoot(context, year) == null) {
             return false;
         }
 
         final DegreeModule module = context.getChildDegreeModule();
-        return module.isLeaf() ? isAggregationEnroled((CurricularCourse) module, plan,
-                semester) : isAggregationEnroled((CourseGroup) module, plan, semester);
+        return module.isLeaf() ? isAggregationEnroled((CurricularCourse) module, plan, semester) : false;
     }
 
     static private boolean isAggregationEnroled(final CurricularCourse curricularCourse, final StudentCurricularPlan plan,
@@ -295,36 +350,12 @@ abstract public class CurriculumAggregatorServices {
                 .isEnroledInExecutionPeriod(curricularCourse, semester));
     }
 
-    static private boolean isAggregationEnroled(final CourseGroup courseGroup, final StudentCurricularPlan plan,
-            final ExecutionSemester semester) {
-
-        if (!plan.hasDegreeModule(courseGroup)) {
-            return false;
-        }
-
-        final CurriculumGroup curriculumGroup = plan.findCurriculumGroupFor(courseGroup);
-        long completedModules = curriculumGroup.getChildCurriculumLines().stream().filter(c -> c.isApproved()).count()
-                + curriculumGroup.getEnrolmentsBy(semester).stream().filter(e -> !e.isApproved()).count();
-        for (final CurriculumGroup iter : curriculumGroup.getChildCurriculumGroups()) {
-            if (isAggregationEnroled(iter.getDegreeModule(), plan, semester)) {
-                completedModules++;
-            }
-        }
-
-        final DegreeModulesSelectionLimit modulesLimit = (DegreeModulesSelectionLimit) courseGroup
-                .getCurricularRules(CurricularRuleType.DEGREE_MODULES_SELECTION_LIMIT, semester).stream().findFirst()
-                .orElse(null);
-
-        return completedModules >= (modulesLimit == null ? courseGroup.getChildDegreeModules().size() : modulesLimit
-                .getMinimumLimit().intValue());
-    }
-
     static public Set<IDegreeModuleToEvaluate> getAggregationParticipantsToEnrol(final Context context,
             final StudentCurricularPlan plan, final ExecutionSemester semester, final Set<Context> aboutToEnrol) {
 
         final Set<IDegreeModuleToEvaluate> result = Sets.newHashSet();
 
-        for (final Context iter : collectEnrolmentSlaveContexts(context)) {
+        for (final Context iter : collectEnrolmentSlaveContexts(context, semester.getExecutionYear())) {
 
             if (isCandidateForEnrolmentAutomatically(iter, plan, semester, aboutToEnrol)) {
 
@@ -340,7 +371,7 @@ abstract public class CurriculumAggregatorServices {
 
         final Set<CurriculumModule> result = Sets.newHashSet();
 
-        for (final Context iter : collectEnrolmentSlaveContexts(context)) {
+        for (final Context iter : collectEnrolmentSlaveContexts(context, semester.getExecutionYear())) {
 
             // must check if is already approved (grade or dismissal)
             if (isApproved(iter, plan)) {
@@ -401,11 +432,6 @@ abstract public class CurriculumAggregatorServices {
 
         if (degreeModule.isLeaf()) {
             result = plan.isApproved((CurricularCourse) degreeModule);
-        } else {
-            final CurriculumGroup curriculumGroup = findCurriculumGroupFor(context, plan);
-            if (curriculumGroup != null) {
-                result = curriculumGroup.isConcluded();
-            }
         }
 
         return result;
@@ -424,11 +450,13 @@ abstract public class CurriculumAggregatorServices {
 
     static public boolean isToDisableEnrolmentOption(final Context context, final ExecutionYear year) {
         return isAggregationsActive(year)
-                && getAggregationRoots(context).stream().anyMatch(i -> i.getEnrolmentSlaveContexts().contains(context));
+                && getAggregationRoots(context, year).stream().anyMatch(i -> i.getEnrolmentSlaveContexts().contains(context));
     }
 
     static private boolean isCandidateForEnrolmentAutomatically(final Context context, final StudentCurricularPlan plan,
             final ExecutionSemester semester, final Set<Context> aboutToEnrol) {
+
+        final ExecutionYear year = semester.getExecutionYear();
 
         // must check if was enroled in other interaction
         if (isAggregationEnroled(context, plan, semester)) {
@@ -436,7 +464,7 @@ abstract public class CurriculumAggregatorServices {
         }
 
         // if is a optional aggregator entry must be manually enroled
-        if (isOptionalEntryRelated(context)) {
+        if (isOptionalEntryRelated(context, year)) {
             return false;
         }
 
@@ -448,21 +476,21 @@ abstract public class CurriculumAggregatorServices {
 
         // if is a slave entry, must check for aggregator's approval
         // (typically this is not a problem because the aggregator is on the "first level" and is discarted by UI) 
-        final CurriculumAggregatorEntry entry = context == null ? null : context.getCurriculumAggregatorEntry();
+        final CurriculumAggregatorEntry entry = context == null ? null : getAggregatorEntry(context, year);
         if (entry != null && entry.getAggregator().isEnrolmentMaster() && CompetenceCourseServices.isCompetenceCourseApproved(
                 plan, (CurricularCourse) entry.getAggregator().getContext().getChildDegreeModule(), (ExecutionSemester) null)) {
             return false;
         }
 
         // if is a slave aggregator, must enrol only if all master are aggregation enroled or about to be
-        final CurriculumAggregator aggregator = context == null ? null : context.getCurriculumAggregator();
+        final CurriculumAggregator aggregator = context == null ? null : getAggregator(context, year);
         if (aggregator != null && aggregator.isEnrolmentSlave()) {
 
             final int optionalConcluded = aggregator.getOptionalConcluded();
             int optionalEnroled = 0;
 
             for (final Context iter : aggregator.getEnrolmentMasterContexts()) {
-                final boolean optionalEntryRelated = isOptionalEntryRelated(iter);
+                final boolean optionalEntryRelated = isOptionalEntryRelated(iter, year);
 
                 if (isAggregationEnroled(iter, plan, semester) || CompetenceCourseServices.isCompetenceCourseApproved(plan,
                         (CurricularCourse) iter.getChildDegreeModule(), (ExecutionSemester) null)) {
@@ -498,27 +526,24 @@ abstract public class CurriculumAggregatorServices {
     static public boolean isCandidateForEvaluation(final EvaluationSeason season, final Enrolment enrolment) {
         if (isAggregationsActive(enrolment.getExecutionYear())) {
 
-            final Context context = getContext(enrolment);
-            if (context != null) {
+            final CurriculumAggregator aggregator = getAggregator(enrolment);
+            if (aggregator != null && !aggregator.isCandidateForEvaluation(season)) {
+                return false;
+            }
 
-                final CurriculumAggregator aggregator = context.getCurriculumAggregator();
-                if (aggregator != null && !aggregator.isCandidateForEvaluation(season)) {
-                    return false;
-                }
-
-                final CurriculumAggregatorEntry entry = context.getCurriculumAggregatorEntry();
-                if (entry != null && !entry.isCandidateForEvaluation()) {
-                    return false;
-                }
+            final CurriculumAggregatorEntry entry = getAggregatorEntry(enrolment);
+            if (entry != null && !entry.isCandidateForEvaluation()) {
+                return false;
             }
         }
 
         return true;
     }
 
-    static public boolean isOptionalEntryRelated(final Context context) {
+    static public boolean isOptionalEntryRelated(final Context context, final ExecutionYear year) {
         if (context != null) {
-            CurriculumAggregatorEntry entry = context.getCurriculumAggregatorEntry();
+
+            CurriculumAggregatorEntry entry = getAggregatorEntry(context, year);
             if (entry != null) {
                 if (entry.getOptional()) {
                     return true;

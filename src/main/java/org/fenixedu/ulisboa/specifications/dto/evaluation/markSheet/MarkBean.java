@@ -40,7 +40,6 @@ import org.fenixedu.academic.domain.Grade;
 import org.fenixedu.academic.domain.GradeScale;
 import org.fenixedu.academic.domain.accessControl.AcademicAuthorizationGroup;
 import org.fenixedu.academic.domain.accessControl.academicAdministration.AcademicOperationType;
-import org.fenixedu.academic.domain.degreeStructure.Context;
 import org.fenixedu.academic.domain.student.Registration;
 import org.fenixedu.bennu.IBean;
 import org.fenixedu.bennu.core.security.Authenticate;
@@ -182,8 +181,7 @@ public class MarkBean implements IBean, Comparable<MarkBean> {
     }
 
     private Grade getGradeSuggestedByAggregation() {
-        final Context context = CurriculumAggregatorServices.getContext(getEnrolment());
-        final CurriculumAggregator aggregator = context == null ? null : context.getCurriculumAggregator();
+        final CurriculumAggregator aggregator = CurriculumAggregatorServices.getAggregator(getEnrolment());
         if (aggregator != null && aggregator.isCandidateForEvaluation(getEvaluationSeason())) {
             return aggregator.calculateConclusionGrade(getEnrolment().getStudentCurricularPlan());
         }

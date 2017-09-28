@@ -164,6 +164,7 @@ public class CurriculumAggregator extends CurriculumAggregator_Base {
 
         super.setContext(null);
         super.setEvaluationSeason(null);
+        super.setSince(null);
 
         super.setRoot(null);
         super.deleteDomainObject();
@@ -381,7 +382,7 @@ public class CurriculumAggregator extends CurriculumAggregator_Base {
         }
 
         // may be concluded by approval of another aggregator on which aggregation it participates
-        final CurriculumAggregatorEntry entry = getContext().getCurriculumAggregatorEntry();
+        final CurriculumAggregatorEntry entry = CurriculumAggregatorServices.getAggregatorEntry(getContext(), getSince());
         if (entry != null && entry.getAggregator().isAggregationConcluded(plan)) {
             return true;
         }

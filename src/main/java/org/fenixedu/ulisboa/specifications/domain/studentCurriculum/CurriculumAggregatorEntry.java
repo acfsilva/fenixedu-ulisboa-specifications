@@ -28,6 +28,7 @@ package org.fenixedu.ulisboa.specifications.domain.studentCurriculum;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -35,9 +36,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.fenixedu.academic.domain.CurricularCourse;
-import org.fenixedu.academic.domain.DomainObjectUtil;
 import org.fenixedu.academic.domain.Enrolment;
 import org.fenixedu.academic.domain.ExecutionSemester;
+import org.fenixedu.academic.domain.ExecutionYear;
 import org.fenixedu.academic.domain.Grade;
 import org.fenixedu.academic.domain.StudentCurricularPlan;
 import org.fenixedu.academic.domain.curricularRules.ICurricularRule;
@@ -46,7 +47,6 @@ import org.fenixedu.academic.domain.degreeStructure.CourseGroup;
 import org.fenixedu.academic.domain.degreeStructure.DegreeModule;
 import org.fenixedu.academic.domain.exceptions.DomainException;
 import org.fenixedu.academic.domain.student.curriculum.ICurriculumEntry;
-import org.fenixedu.academic.domain.studentCurriculum.CurriculumGroup;
 import org.fenixedu.academic.domain.studentCurriculum.CurriculumLine;
 import org.fenixedu.academic.domain.studentCurriculum.CurriculumModule;
 import org.fenixedu.academic.domain.studentCurriculum.Dismissal;
@@ -138,6 +138,10 @@ public class CurriculumAggregatorEntry extends CurriculumAggregatorEntry_Base {
         super.deleteDomainObject();
     }
 
+    public ExecutionYear getSince() {
+        return getAggregator().getSince();
+    }
+
     public String getDescription() {
         return ULisboaSpecificationsUtil.bundle("CurriculumAggregatorEntry");
     }
@@ -149,9 +153,6 @@ public class CurriculumAggregatorEntry extends CurriculumAggregatorEntry_Base {
     protected boolean isAggregationEvaluated(final StudentCurricularPlan plan) {
         final CurriculumModule module = getCurriculumModule(plan, false);
         if (module != null) {
-            if (module instanceof CurriculumGroup) {
-                // TODO legidio
-            }
             if (module instanceof Dismissal) {
                 return true;
             }
@@ -186,7 +187,7 @@ public class CurriculumAggregatorEntry extends CurriculumAggregatorEntry_Base {
                 result = plan.getAllCurriculumLines().stream()
                         .filter(i -> i.getDegreeModule() == getContext().getChildDegreeModule()).max((x, y) -> {
                             final int c = x.getExecutionYear().compareTo(y.getExecutionYear());
-                            return c == 0 ? DomainObjectUtil.COMPARATOR_BY_ID.compare(x, y) : c;
+                            return c == 0 ? Comparator.comparing(CurriculumLine::getExternalId).compare(x, y) : c;
                         }).orElse(null);
             }
 
