@@ -95,8 +95,8 @@ public enum AggregationGradeCalculator implements IPresentableEnum {
         final String grade = value.setScale(gradeValueScale, RoundingMode.HALF_UP).toString();
         if (!gradeScale.belongsTo(grade)) {
             throw new ULisboaSpecificationsDomainException("error.CurriculumAggregator.GradeScale.unsupports.ConclusionGrade",
-                    plan.getRegistration().getNumber().toString(), aggregator.getContext().getChildDegreeModule().getCode(),
-                    grade, gradeScale.getDescription());
+                    plan.getRegistration().getNumber().toString(), aggregator.getCurricularCourse().getCode(), grade,
+                    gradeScale.getDescription());
         }
 
         return Grade.createGrade(grade, gradeScale);

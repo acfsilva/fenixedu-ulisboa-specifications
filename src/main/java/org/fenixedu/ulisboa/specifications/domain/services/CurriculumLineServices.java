@@ -87,7 +87,7 @@ abstract public class CurriculumLineServices {
             // BUT with different configurations per year we cannot depend on direct relation:
             // AggregatorEntry for a given CurriculumLine may not be of the same year of the Aggregator to be updated
             final CurriculumAggregator aggregator = CurriculumAggregatorServices.getAggregationRoots(line).stream()
-                    .filter(i -> i.getContext().getChildDegreeModule() != line.getDegreeModule()).findFirst().orElse(null);
+                    .filter(i -> i.getCurricularCourse() != line.getDegreeModule()).findFirst().orElse(null);
 
             if (aggregator != null) {
                 aggregator.updateEvaluation(line.getStudentCurricularPlan());

@@ -95,7 +95,7 @@ abstract public class CurriculumAggregatorServices {
 
             for (final CurriculumAggregator contemporaryRoot : getAggregationRoots(context, year)) {
 
-                final DegreeModule rootModule = contemporaryRoot.getContext().getChildDegreeModule();
+                final DegreeModule rootModule = contemporaryRoot.getCurricularCourse();
 
                 // itself should be taken into account in the same year, so we add it immediately
                 if (rootModule == line.getDegreeModule()) {
@@ -104,7 +104,7 @@ abstract public class CurriculumAggregatorServices {
                 } else {
 
                     final List<DegreeModule> possibleModules = context.getCurriculumAggregatorEntrySet().stream()
-                            .map(i -> i.getAggregator().getContext().getChildDegreeModule()).collect(Collectors.toList());
+                            .map(i -> i.getAggregator().getCurricularCourse()).collect(Collectors.toList());
 
                     final List<CurriculumLine> possibleLines = line.getStudentCurricularPlan().getAllCurriculumLines().stream()
                             .filter(i -> possibleModules.contains(i.getDegreeModule())
@@ -478,7 +478,7 @@ abstract public class CurriculumAggregatorServices {
         // (typically this is not a problem because the aggregator is on the "first level" and is discarted by UI) 
         final CurriculumAggregatorEntry entry = context == null ? null : getAggregatorEntry(context, year);
         if (entry != null && entry.getAggregator().isEnrolmentMaster() && CompetenceCourseServices.isCompetenceCourseApproved(
-                plan, (CurricularCourse) entry.getAggregator().getContext().getChildDegreeModule(), (ExecutionSemester) null)) {
+                plan, (CurricularCourse) entry.getAggregator().getCurricularCourse(), (ExecutionSemester) null)) {
             return false;
         }
 
