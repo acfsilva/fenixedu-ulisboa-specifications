@@ -46,7 +46,9 @@ import org.fenixedu.academic.domain.student.Registration;
 import org.fenixedu.academic.domain.student.curriculum.ICurriculumEntry;
 import org.fenixedu.academic.domain.studentCurriculum.CurriculumLine;
 import org.fenixedu.academic.domain.studentCurriculum.Dismissal;
+import org.fenixedu.academic.util.Bundle;
 import org.fenixedu.academic.util.EnrolmentEvaluationState;
+import org.fenixedu.bennu.core.i18n.BundleUtil;
 import org.fenixedu.bennu.core.security.Authenticate;
 import org.fenixedu.commons.i18n.LocalizedString;
 import org.fenixedu.ulisboa.specifications.ULisboaConfiguration;
@@ -188,6 +190,20 @@ public class CurriculumAggregator extends CurriculumAggregator_Base {
         }
 
         return getDescriptionDefault();
+    }
+
+    public String getDescriptionFull() {
+        final String description = getDescription().getContent();
+        final String since = getSince().getQualifiedName();
+        
+        String result = String.format("%s [%s %s]", description, BundleUtil.getString(Bundle.APPLICATION, "label.since"), since);
+
+        final int optionalConcluded = getOptionalConcluded();
+        if (optionalConcluded != 0) {
+            result += " [" + optionalConcluded + " Op]";
+        }
+
+        return result;
     }
 
     private LocalizedString getDescriptionDefault() {

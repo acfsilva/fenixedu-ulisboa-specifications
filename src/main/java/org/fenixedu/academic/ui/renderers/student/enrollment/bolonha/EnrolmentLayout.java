@@ -784,47 +784,16 @@ public class EnrolmentLayout extends BolonhaStudentEnrolmentLayout {
 
             final ExecutionYear year = semester.getExecutionYear();
 
-            final CurriculumAggregatorEntry aggregatorEntry = CurriculumAggregatorServices.getAggregatorEntry(context, year);
-            if (aggregatorEntry != null) {
-                final CurriculumAggregator aggregator = aggregatorEntry.getAggregator();
+            final CurriculumAggregatorEntry entry = CurriculumAggregatorServices.getAggregatorEntry(context, year);
+            if (entry != null) {
+                final CurriculumAggregator aggregator = entry.getAggregator();
                 if (aggregator.isLegacy()) {
                     return result;
                 }
 
                 final HtmlInlineContainer span = new HtmlInlineContainer();
-
-                final String description = aggregator.getContext().getChildDegreeModule().getCode();
-                final String gradeFactor = BigDecimal.ZERO.compareTo(aggregatorEntry.getGradeFactor()) == 0 ? "" : aggregatorEntry
-                        .getGradeFactor().multiply(BigDecimal.valueOf(100d)).stripTrailingZeros().toPlainString() + "%, ";
-                final String since = aggregator.getSince().getQualifiedName();
-                String text =
-                        String.format("%s [%s%s %s]", description, gradeFactor, i18n(Bundle.APPLICATION, "label.since"), since);
-                String spanStyleClasses = "label label-";
-
-                if (aggregatorEntry.getOptional()) {
-                    text += " [Op]";
-                }
-
-                // we test for aggregator enrolment in order to avoid counting optionals on a UI method
-                if (aggregator.isEnrolmentMaster()
-                        || CurriculumAggregatorServices.isAggregationEnroled(aggregator.getContext(), scp, semester)) {
-
-                    spanStyleClasses += "default";
-
-                } else if (aggregator.isEnrolmentSlave()) {
-
-                    if (aggregator.getEnrolmentMasterContexts().stream()
-                            .anyMatch(i -> CurriculumAggregatorServices.isAggregationEnroled(i, scp, semester))) {
-
-                        spanStyleClasses += "warning";
-
-                    } else {
-                        spanStyleClasses += "default";
-                    }
-                }
-
-                span.addChild(new HtmlText(text));
-                span.setClasses(spanStyleClasses);
+                span.addChild(new HtmlText(entry.getDescriptionFull()));
+                span.setClasses(getAggregatorEntryStyle(entry, scp, semester));
                 result.addChild(span);
             }
 
@@ -835,45 +804,67 @@ public class EnrolmentLayout extends BolonhaStudentEnrolmentLayout {
                 }
 
                 final HtmlInlineContainer span = new HtmlInlineContainer();
+                span.addChild(new HtmlText(aggregator.getDescriptionFull()));
+                span.setClasses(getAggregatorStyle(aggregator, scp, semester));
+                result.addChild(span);
+            }
+        }
 
-                final String description = aggregator.getDescription().getContent();
-                final String since = aggregator.getSince().getQualifiedName();
-                String text = String.format("%s [%s %s]", description, i18n(Bundle.APPLICATION, "label.since"), since);
+        return result;
+    }
 
-                String spanStyleClasses = "label label-";
+    static private String getAggregatorEntryStyle(final CurriculumAggregatorEntry entry, final StudentCurricularPlan scp,
+            final ExecutionSemester semester) {
 
-                final int optionalConcluded = aggregator.getOptionalConcluded();
-                if (optionalConcluded != 0) {
-                    text += " [" + optionalConcluded + " Op]";
-                }
+        String result = "label label-";
 
-                // we test for aggregator enrolment in order to avoid counting optionals on a UI method
-                if (CurriculumAggregatorServices.isAggregationEnroled(aggregator.getContext(), scp, semester)) {
-                    spanStyleClasses += "success";
+        // we test for aggregator enrolment in order to avoid counting optionals on a UI method
+        final CurriculumAggregator aggregator = entry.getAggregator();
+        if (aggregator.isEnrolmentMaster()
+                || CurriculumAggregatorServices.isAggregationEnroled(aggregator.getContext(), scp, semester)) {
 
+            result += "default";
+
+        } else if (aggregator.isEnrolmentSlave()) {
+
+            if (aggregator.getEnrolmentMasterContexts().stream()
+                    .anyMatch(i -> CurriculumAggregatorServices.isAggregationEnroled(i, scp, semester))) {
+
+                result += "warning";
+
+            } else {
+                result += "default";
+            }
+        }
+
+        return result;
+    }
+
+    static private String getAggregatorStyle(final CurriculumAggregator aggregator, final StudentCurricularPlan scp,
+            final ExecutionSemester semester) {
+
+        String result = "label label-";
+
+        // we test for aggregator enrolment in order to avoid counting optionals on a UI method
+        if (CurriculumAggregatorServices.isAggregationEnroled(aggregator.getContext(), scp, semester)) {
+            result += "success";
+
+        } else {
+
+            if (aggregator.isEnrolmentMaster()) {
+
+                result += "info";
+
+            } else if (aggregator.isEnrolmentSlave()) {
+
+                if (aggregator.getEnrolmentMasterContexts().stream()
+                        .anyMatch(i -> CurriculumAggregatorServices.isAggregationEnroled(i, scp, semester))) {
+
+                    result += "danger";
                 } else {
 
-                    if (aggregator.isEnrolmentMaster()) {
-
-                        spanStyleClasses += "info";
-
-                    } else if (aggregator.isEnrolmentSlave()) {
-
-                        if (aggregator.getEnrolmentMasterContexts().stream()
-                                .anyMatch(i -> CurriculumAggregatorServices.isAggregationEnroled(i, scp, semester))) {
-
-                            text += " [!]";
-                            spanStyleClasses += "danger";
-                        } else {
-
-                            spanStyleClasses += "info";
-                        }
-                    }
+                    result += "info";
                 }
-
-                span.addChild(new HtmlText(text));
-                span.setClasses(spanStyleClasses);
-                result.addChild(span);
             }
         }
 

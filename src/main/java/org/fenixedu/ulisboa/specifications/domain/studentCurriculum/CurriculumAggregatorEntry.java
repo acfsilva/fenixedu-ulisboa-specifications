@@ -36,6 +36,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.fenixedu.academic.domain.CurricularCourse;
+import org.fenixedu.academic.domain.DegreeCurricularPlan;
 import org.fenixedu.academic.domain.Enrolment;
 import org.fenixedu.academic.domain.ExecutionSemester;
 import org.fenixedu.academic.domain.ExecutionYear;
@@ -43,13 +44,14 @@ import org.fenixedu.academic.domain.Grade;
 import org.fenixedu.academic.domain.StudentCurricularPlan;
 import org.fenixedu.academic.domain.curricularRules.ICurricularRule;
 import org.fenixedu.academic.domain.degreeStructure.Context;
-import org.fenixedu.academic.domain.degreeStructure.CourseGroup;
 import org.fenixedu.academic.domain.degreeStructure.DegreeModule;
 import org.fenixedu.academic.domain.exceptions.DomainException;
 import org.fenixedu.academic.domain.student.curriculum.ICurriculumEntry;
 import org.fenixedu.academic.domain.studentCurriculum.CurriculumLine;
 import org.fenixedu.academic.domain.studentCurriculum.CurriculumModule;
 import org.fenixedu.academic.domain.studentCurriculum.Dismissal;
+import org.fenixedu.academic.util.Bundle;
+import org.fenixedu.bennu.core.i18n.BundleUtil;
 import org.fenixedu.ulisboa.specifications.domain.curricularRules.CurricularRuleServices;
 import org.fenixedu.ulisboa.specifications.domain.curricularRules.CurriculumAggregatorApproval;
 import org.fenixedu.ulisboa.specifications.domain.exceptions.ULisboaSpecificationsDomainException;
@@ -146,6 +148,34 @@ public class CurriculumAggregatorEntry extends CurriculumAggregatorEntry_Base {
         return ULisboaSpecificationsUtil.bundle("CurriculumAggregatorEntry");
     }
 
+    public String getDescriptionFull() {
+        final String description = getAggregator().getCurricularCourse().getCode();
+        final String since = getAggregator().getSince().getQualifiedName();
+        final String gradeFactor = BigDecimal.ZERO.compareTo(getGradeFactor()) == 0 ? "" : getGradeFactor()
+                .multiply(BigDecimal.valueOf(100d)).stripTrailingZeros().toPlainString() + "%, ";
+
+        String result = String.format("%s [%s%s %s]", description, gradeFactor,
+                BundleUtil.getString(Bundle.APPLICATION, "label.since"), since);
+
+        if (getOptional()) {
+            result += " [Op]";
+        }
+
+        return result;
+    }
+
+    public boolean isLegacy() {
+        return getAggregator().isLegacy();
+    }
+
+    public DegreeCurricularPlan getDegreeCurricularPlan() {
+        return getContext().getParentCourseGroup().getParentDegreeCurricularPlan();
+    }
+
+    public CurricularCourse getCurricularCourse() {
+        return (CurricularCourse) getContext().getChildDegreeModule();
+    }
+
     public boolean isCandidateForEvaluation() {
         return getEvaluationType().isCandidateForEvaluation();
     }
@@ -173,19 +203,16 @@ public class CurriculumAggregatorEntry extends CurriculumAggregatorEntry_Base {
     private CurriculumModule getCurriculumModule(final StudentCurricularPlan plan, final boolean approved) {
         final CurriculumModule result;
 
-        final DegreeModule degreeModule = getContext().getChildDegreeModule();
-        if (degreeModule.isCourseGroup()) {
-            result = plan.findCurriculumGroupFor((CourseGroup) degreeModule);
-
-        } else if (degreeModule.isCurricularCourse()) {
+        final DegreeModule degreeModule = getCurricularCourse();
+        if (degreeModule.isCurricularCourse()) {
 
             if (approved) {
                 result = plan.getApprovedCurriculumLine((CurricularCourse) degreeModule);
 
             } else {
 
-                result = plan.getAllCurriculumLines().stream()
-                        .filter(i -> i.getDegreeModule() == getContext().getChildDegreeModule()).max((x, y) -> {
+                result = plan.getAllCurriculumLines().stream().filter(i -> i.getDegreeModule() == getCurricularCourse())
+                        .max((x, y) -> {
                             final int c = x.getExecutionYear().compareTo(y.getExecutionYear());
                             return c == 0 ? Comparator.comparing(CurriculumLine::getExternalId).compare(x, y) : c;
                         }).orElse(null);
