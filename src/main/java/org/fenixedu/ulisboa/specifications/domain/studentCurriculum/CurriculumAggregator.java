@@ -86,13 +86,14 @@ public class CurriculumAggregator extends CurriculumAggregator_Base {
     }
 
     @Atomic
-    static public CurriculumAggregator create(final Context context, final LocalizedString description,
+    static public CurriculumAggregator create(final Context context, final ExecutionYear since, final LocalizedString description,
             final AggregationEnrolmentType enrolmentType, final AggregationMemberEvaluationType evaluationType,
             final EvaluationSeason evaluationSeason, final AggregationGradeCalculator gradeCalculator, final int gradeValueScale,
             final int optionalConcluded) {
 
         final CurriculumAggregator result = new CurriculumAggregator();
         result.setContext(context);
+        result.setSince(since);
         result.init(description, enrolmentType, evaluationType, evaluationSeason, gradeCalculator, gradeValueScale,
                 optionalConcluded);
 
@@ -107,6 +108,22 @@ public class CurriculumAggregator extends CurriculumAggregator_Base {
         init(description, enrolmentType, evaluationType, evaluationSeason, gradeCalculator, gradeValueScale, optionalConcluded);
 
         return this;
+    }
+
+    @Atomic
+    public CurriculumAggregator duplicate(final ExecutionYear targetYear) {
+
+        final CurriculumAggregator result = create(getContext(), targetYear, getDescription(), getEnrolmentType(),
+                getEvaluationType(), getEvaluationSeason(), getGradeCalculator(), getGradeValueScale(), getOptionalConcluded());
+
+        for (final CurriculumAggregatorEntry entry : getEntriesSet()) {
+            if (entry.getContext().isValid(getSince())) {
+                CurriculumAggregatorEntry.create(result, entry.getContext(), entry.getEvaluationType(), entry.getGradeFactor(),
+                        entry.getGradeValueScale(), entry.getOptional());
+            }
+        }
+
+        return result;
     }
 
     private void init(final LocalizedString description, final AggregationEnrolmentType enrolmentType,
@@ -127,6 +144,19 @@ public class CurriculumAggregator extends CurriculumAggregator_Base {
     private void checkRules() {
         if (getContext() == null) {
             throw new DomainException("error.CurriculumAggregator.required.Context");
+        }
+
+        if (getSince() == null) {
+            throw new DomainException("error.CurriculumAggregator.required.Since");
+        }
+
+        final CurriculumAggregator found = CurriculumAggregatorServices.findAggregator(getContext(), getSince());
+        if (found != null && found != this) {
+            throw new DomainException("error.CurriculumAggregator.duplicate");
+        }
+
+        if (!getContext().isValid(getSince())) {
+            throw new DomainException("error.CurriculumAggregator.invalid.Context");
         }
 
         if (getDescription() == null || getDescription().isEmpty()) {
@@ -165,8 +195,8 @@ public class CurriculumAggregator extends CurriculumAggregator_Base {
         }
 
         super.setContext(null);
-        super.setEvaluationSeason(null);
         super.setSince(null);
+        super.setEvaluationSeason(null);
 
         super.setRoot(null);
         super.deleteDomainObject();
@@ -195,8 +225,15 @@ public class CurriculumAggregator extends CurriculumAggregator_Base {
     public String getDescriptionFull() {
         final String description = getDescription().getContent();
         final String since = getSince().getQualifiedName();
-        
-        String result = String.format("%s [%s %s]", description, BundleUtil.getString(Bundle.APPLICATION, "label.since"), since);
+
+        final GradeScale gradeScale = getGradeScale();
+        String gradeScaleDescription = "";
+        if (gradeScale != GradeScale.TYPE20) {
+            gradeScaleDescription = ", " + gradeScale.getDescription().replace(GradeScale.TYPE20.getDescription(), "");
+        }
+
+        String result = String.format("%s [%s %s%s]", description, BundleUtil.getString(Bundle.APPLICATION, "label.since"), since,
+                gradeScaleDescription);
 
         final int optionalConcluded = getOptionalConcluded();
         if (optionalConcluded != 0) {
@@ -218,8 +255,17 @@ public class CurriculumAggregator extends CurriculumAggregator_Base {
         return getContext().getParentCourseGroup().getParentDegreeCurricularPlan();
     }
 
+    public boolean isValid(final ExecutionYear year) {
+        return year != null && getSince().isBeforeOrEquals(year);
+    }
+
     public CurricularCourse getCurricularCourse() {
         return (CurricularCourse) getContext().getChildDegreeModule();
+    }
+
+    public GradeScale getGradeScale() {
+        final GradeScale competenceScale = getCurricularCourse().getCompetenceCourse().getGradeScale();
+        return competenceScale != null ? competenceScale : getCurricularCourse().getGradeScaleChain();
     }
 
     private boolean isWithMarkSheet() {
@@ -437,7 +483,7 @@ public class CurriculumAggregator extends CurriculumAggregator_Base {
         }
 
         if (!isAggregationConcluded(plan)) {
-            return Grade.createGrade(GradeScale.RE, getGradeCalculator().getGradeScale());
+            return Grade.createGrade(GradeScale.RE, getGradeScale());
         }
 
         return getGradeCalculator().calculate(this, plan);

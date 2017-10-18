@@ -41,6 +41,7 @@ import org.fenixedu.academic.domain.Enrolment;
 import org.fenixedu.academic.domain.ExecutionSemester;
 import org.fenixedu.academic.domain.ExecutionYear;
 import org.fenixedu.academic.domain.Grade;
+import org.fenixedu.academic.domain.GradeScale;
 import org.fenixedu.academic.domain.StudentCurricularPlan;
 import org.fenixedu.academic.domain.curricularRules.ICurricularRule;
 import org.fenixedu.academic.domain.degreeStructure.Context;
@@ -119,6 +120,15 @@ public class CurriculumAggregatorEntry extends CurriculumAggregatorEntry_Base {
             throw new ULisboaSpecificationsDomainException("error.CurriculumAggregatorEntry.required.Context");
         }
 
+        final CurriculumAggregatorEntry found = CurriculumAggregatorServices.findAggregatorEntry(getContext(), getSince());
+        if (found != null && found != this) {
+            throw new DomainException("error.CurriculumAggregatorEntry.duplicate");
+        }
+
+        if (!getContext().isValid(getSince())) {
+            throw new DomainException("error.CurriculumAggregatorEntry.invalid.Context");
+        }
+
         if (getEvaluationType() == null) {
             throw new ULisboaSpecificationsDomainException("error.CurriculumAggregatorEntry.required.EvaluationType");
         }
@@ -151,11 +161,21 @@ public class CurriculumAggregatorEntry extends CurriculumAggregatorEntry_Base {
     public String getDescriptionFull() {
         final String description = getAggregator().getCurricularCourse().getCode();
         final String since = getAggregator().getSince().getQualifiedName();
-        final String gradeFactor = BigDecimal.ZERO.compareTo(getGradeFactor()) == 0 ? "" : getGradeFactor()
-                .multiply(BigDecimal.valueOf(100d)).stripTrailingZeros().toPlainString() + "%, ";
 
-        String result = String.format("%s [%s%s %s]", description, gradeFactor,
-                BundleUtil.getString(Bundle.APPLICATION, "label.since"), since);
+        final String gradeFactor =
+                ", " + (getGradeFactor() == null || BigDecimal.ZERO.compareTo(getGradeFactor()) == 0 ? BundleUtil
+                        .getLocalizedString(Bundle.ENUMERATION, GradeScale.TYPEQUALITATIVE.name())
+                        .getContent() : getGradeFactor().multiply(BigDecimal.valueOf(100d)).stripTrailingZeros().toPlainString()
+                                + "%");
+
+        final GradeScale gradeScale = getGradeScale();
+        String gradeScaleDescription = "";
+        if (gradeScale != GradeScale.TYPE20) {
+            gradeScaleDescription = " " + gradeScale.getDescription().replace(GradeScale.TYPE20.getDescription(), "");
+        }
+
+        String result = String.format("%s [%s %s%s%s]", description, BundleUtil.getString(Bundle.APPLICATION, "label.since"),
+                since, gradeFactor, gradeScaleDescription);
 
         if (getOptional()) {
             result += " [Op]";
@@ -172,8 +192,17 @@ public class CurriculumAggregatorEntry extends CurriculumAggregatorEntry_Base {
         return getContext().getParentCourseGroup().getParentDegreeCurricularPlan();
     }
 
+    public boolean isValid(final ExecutionYear year) {
+        return year != null && getSince().isBeforeOrEquals(year);
+    }
+
     public CurricularCourse getCurricularCourse() {
         return (CurricularCourse) getContext().getChildDegreeModule();
+    }
+
+    public GradeScale getGradeScale() {
+        final GradeScale competenceScale = getCurricularCourse().getCompetenceCourse().getGradeScale();
+        return competenceScale != null ? competenceScale : getCurricularCourse().getGradeScaleChain();
     }
 
     public boolean isCandidateForEvaluation() {

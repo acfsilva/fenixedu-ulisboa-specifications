@@ -45,6 +45,7 @@ import org.fenixedu.academic.domain.degreeStructure.CourseGroup;
 import org.fenixedu.academic.domain.degreeStructure.DegreeModule;
 import org.fenixedu.academic.domain.enrolment.DegreeModuleToEnrol;
 import org.fenixedu.academic.domain.enrolment.IDegreeModuleToEvaluate;
+import org.fenixedu.academic.domain.exceptions.DomainException;
 import org.fenixedu.academic.domain.studentCurriculum.CurriculumGroup;
 import org.fenixedu.academic.domain.studentCurriculum.CurriculumLine;
 import org.fenixedu.academic.domain.studentCurriculum.CurriculumModule;
@@ -125,9 +126,9 @@ abstract public class CurriculumAggregatorServices {
     }
 
     /**
-     * Tries to find a Aggregator in the following order:
+     * Tries to find an Aggregator in the following order:
      * 
-     * 1) if Context has a Aggregator, return it;
+     * 1) if Context has an Aggregator, return it
      * 2) if Context has an Entry, return it's Aggregator
      */
     static public CurriculumAggregator getAggregationRoot(final Context context, final ExecutionYear year) {
@@ -137,8 +138,9 @@ abstract public class CurriculumAggregatorServices {
 
     /**
      * Collects all Aggregators related with the input:
-     * 1) if Context has a Aggregator, return it;
-     * 2) if Context has an Entry, return it's Aggregator
+     * 
+     * 1) if Context has an Aggregator, add it to result
+     * 2) if Context has an Entry, add it's Aggregator to result
      */
     static public Set<CurriculumAggregator> getAggregationRoots(final Context context, final ExecutionYear year) {
         // essential to be a linked set, order matters!!
@@ -177,6 +179,29 @@ abstract public class CurriculumAggregatorServices {
         return result;
     }
 
+    /**
+     * Different from getAggregator because it tries to find an Aggregator EXACTLY with the given year
+     */
+    static public CurriculumAggregator findAggregator(final Context context, final ExecutionYear year) {
+        CurriculumAggregator result = null;
+
+        if (context != null && year != null) {
+
+            for (final CurriculumAggregator iter : context.getCurriculumAggregatorSet()) {
+                if (iter.getSince() == year) {
+
+                    if (result != null) {
+                        throw new DomainException("error.CurriculumAggregator.duplicate");
+                    }
+
+                    result = iter;
+                }
+            }
+        }
+
+        return result;
+    }
+
     static public CurriculumAggregatorEntry getAggregatorEntry(final CurriculumLine line) {
         return getAggregatorEntry(getContext(line), line.getExecutionYear());
     }
@@ -188,6 +213,29 @@ abstract public class CurriculumAggregatorServices {
 
             result = context.getCurriculumAggregatorEntrySet().stream().filter(i -> i.getSince().isBeforeOrEquals(year))
                     .max(Comparator.comparing(CurriculumAggregatorEntry::getSince)).orElse(null);
+        }
+
+        return result;
+    }
+
+    /**
+     * Different from getAggregatorEntry because it tries to find an AggregatorEntry EXACTLY with the given year
+     */
+    static public CurriculumAggregatorEntry findAggregatorEntry(final Context context, final ExecutionYear year) {
+        CurriculumAggregatorEntry result = null;
+
+        if (context != null && year != null) {
+
+            for (final CurriculumAggregatorEntry iter : context.getCurriculumAggregatorEntrySet()) {
+                if (iter.getSince() == year) {
+
+                    if (result != null) {
+                        throw new DomainException("error.CurriculumAggregatorEntry.duplicate");
+                    }
+
+                    result = iter;
+                }
+            }
         }
 
         return result;
