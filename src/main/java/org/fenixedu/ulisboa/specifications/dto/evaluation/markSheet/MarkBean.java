@@ -53,8 +53,6 @@ import org.fenixedu.ulisboa.specifications.util.ULisboaSpecificationsUtil;
 import org.joda.time.LocalDate;
 import org.joda.time.YearMonthDay;
 
-import com.google.common.base.Strings;
-
 import pt.ist.fenixWebFramework.servlets.filters.contentRewrite.GenericChecksumRewriter;
 import pt.ist.fenixframework.Atomic;
 
@@ -167,17 +165,16 @@ public class MarkBean implements IBean, Comparable<MarkBean> {
     }
 
     public void setGradeValueSuggested() {
-        // info message caches suggestion
+        final Grade current = evaluation == null ? Grade.createEmptyGrade() : evaluation.getGrade();
+
         String suggestionValue = null;
-        if (Strings.isNullOrEmpty(getInfoMessage())) {
-            final Grade suggestion = getGradeSuggestedByAggregation();
-            suggestionValue = suggestion == null || suggestion.isEmpty() ? null : suggestion.getValue();
-            if (suggestionValue != null) {
-                setInfoMessage(ULisboaSpecificationsUtil.bundle("info.MarkBean.gradeValue.suggestion", suggestionValue));
-            }
+        final Grade suggestion = getGradeSuggestedByAggregation();
+        if (!suggestion.isEmpty() && suggestion.compareTo(current) != 0) {
+            suggestionValue = suggestion.getValue();
+            setInfoMessage(ULisboaSpecificationsUtil.bundle("info.MarkBean.gradeValue.suggestion", suggestionValue));
         }
 
-        setGradeValue(evaluation != null ? evaluation.getGrade().getValue() : suggestionValue != null ? suggestionValue : null);
+        setGradeValue(!current.isEmpty() ? current.getValue() : suggestionValue);
     }
 
     private Grade getGradeSuggestedByAggregation() {
@@ -186,7 +183,7 @@ public class MarkBean implements IBean, Comparable<MarkBean> {
             return aggregator.calculateConclusionGrade(getEnrolment().getStudentCurricularPlan());
         }
 
-        return null;
+        return Grade.createEmptyGrade();
     }
 
     public String getGradeValue() {
