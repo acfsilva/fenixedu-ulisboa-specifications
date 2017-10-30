@@ -286,7 +286,7 @@ abstract public class CurriculumAggregatorServices {
 
                     Context result = null;
 
-                    if (input != null) {
+                    if (input != null && isAggregationsActive(null)) {
                         final List<Context> parentContexts = input.getParentContextsSet().stream()
                                 .filter(i -> semester == null || i.isValid(semester))
                                 .sorted((x,
