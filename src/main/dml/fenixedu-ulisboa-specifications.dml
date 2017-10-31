@@ -1804,6 +1804,7 @@ relation CourseGroupDegreeInfoCourseGroup {
     	BigDecimal gradeFactor;
     	int gradeValueScale;
     	boolean optional;
+    	boolean supportsTeacherConfirmation;
     }
     
 	    relation CurriculumAggregatorEntryContext {

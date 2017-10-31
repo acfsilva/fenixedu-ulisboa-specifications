@@ -65,6 +65,7 @@ public class MarkBean implements IBean, Comparable<MarkBean> {
     private String studentName;
     private String viewStudentCurriculum;
     private String gradeValue;
+    private Grade gradeSuggestedByAggregation;
     private String degreeName;
     private String degreeCode;
     private String shifts;
@@ -164,7 +165,8 @@ public class MarkBean implements IBean, Comparable<MarkBean> {
         }
     }
 
-    public void setGradeValueSuggested() {
+    private void setGradeValueSuggested() {
+        setInfoMessage(null);
         final Grade current = evaluation == null ? Grade.createEmptyGrade() : evaluation.getGrade();
 
         String suggestionValue = null;
@@ -178,12 +180,16 @@ public class MarkBean implements IBean, Comparable<MarkBean> {
     }
 
     private Grade getGradeSuggestedByAggregation() {
-        final CurriculumAggregator aggregator = CurriculumAggregatorServices.getAggregator(getEnrolment());
-        if (aggregator != null && aggregator.isCandidateForEvaluation(getEvaluationSeason())) {
-            return aggregator.calculateConclusionGrade(getEnrolment().getStudentCurricularPlan());
+        if (this.gradeSuggestedByAggregation == null) {
+            this.gradeSuggestedByAggregation = Grade.createEmptyGrade();
+
+            final CurriculumAggregator aggregator = CurriculumAggregatorServices.getAggregator(getEnrolment());
+            if (aggregator != null && aggregator.isCandidateForEvaluation(getEvaluationSeason())) {
+                this.gradeSuggestedByAggregation = aggregator.calculateConclusionGrade(getEnrolment().getStudentCurricularPlan());
+            }
         }
 
-        return Grade.createEmptyGrade();
+        return this.gradeSuggestedByAggregation;
     }
 
     public String getGradeValue() {

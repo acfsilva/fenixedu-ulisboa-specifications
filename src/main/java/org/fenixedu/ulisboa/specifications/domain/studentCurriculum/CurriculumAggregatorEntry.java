@@ -70,13 +70,13 @@ public class CurriculumAggregatorEntry extends CurriculumAggregatorEntry_Base {
     }
 
     static protected CurriculumAggregatorEntry create(final CurriculumAggregator aggregator, final Context context,
-            final AggregationMemberEvaluationType evaluationType, final BigDecimal gradeFactor, final int gradeValueScale,
-            final boolean optional) {
+            final AggregationMemberEvaluationType evaluationType, final boolean supportsTeacherConfirmation,
+            final BigDecimal gradeFactor, final int gradeValueScale, final boolean optional) {
 
         final CurriculumAggregatorEntry result = new CurriculumAggregatorEntry();
         result.setAggregator(aggregator);
         result.setContext(context);
-        result.init(evaluationType, gradeFactor, gradeValueScale, optional);
+        result.init(evaluationType, supportsTeacherConfirmation, gradeFactor, gradeValueScale, optional);
 
         final DegreeModule degreeModule = context.getChildDegreeModule();
         if (degreeModule.isLeaf()) {
@@ -92,18 +92,20 @@ public class CurriculumAggregatorEntry extends CurriculumAggregatorEntry_Base {
     }
 
     @Atomic
-    public CurriculumAggregatorEntry edit(final AggregationMemberEvaluationType evaluationType, final BigDecimal gradeFactor,
-            final int gradeValueScale, final boolean optional) {
+    public CurriculumAggregatorEntry edit(final AggregationMemberEvaluationType evaluationType,
+            final boolean supportsTeacherConfirmation, final BigDecimal gradeFactor, final int gradeValueScale,
+            final boolean optional) {
 
-        init(evaluationType, gradeFactor, gradeValueScale, optional);
+        init(evaluationType, supportsTeacherConfirmation, gradeFactor, gradeValueScale, optional);
 
         return this;
     }
 
-    private void init(final AggregationMemberEvaluationType evaluationType, final BigDecimal gradeFactor,
-            final int gradeValueScale, final boolean optional) {
+    private void init(final AggregationMemberEvaluationType evaluationType, final boolean supportsTeacherConfirmation,
+            final BigDecimal gradeFactor, final int gradeValueScale, final boolean optional) {
 
         super.setEvaluationType(evaluationType);
+        super.setSupportsTeacherConfirmation(supportsTeacherConfirmation);
         super.setGradeFactor(gradeFactor);
         super.setGradeValueScale(gradeValueScale);
         super.setOptional(optional);
