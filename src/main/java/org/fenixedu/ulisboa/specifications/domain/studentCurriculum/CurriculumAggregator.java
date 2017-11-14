@@ -71,7 +71,7 @@ public class CurriculumAggregator extends CurriculumAggregator_Base {
 
     /**
      * Attention: Enrolments are dealt with explicitly upon their grade change, since (un)enrol doesn't change aggregator grade.
-     * See other usages of CurriculumLineServices.updateAggregatorEvaluation(CurriculumLine)
+     * See other usages of CurriculumAggregatorServices.updateAggregatorEvaluation(CurriculumLine)
      */
     static {
         Dismissal.getRelationDegreeModuleCurriculumModule().addListener(CurriculumAggregatorListeners.ON_CREATION);

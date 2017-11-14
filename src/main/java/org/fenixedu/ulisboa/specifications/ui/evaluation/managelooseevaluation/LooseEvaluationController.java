@@ -59,6 +59,7 @@ import org.fenixedu.ulisboa.specifications.domain.evaluation.season.EvaluationSe
 import org.fenixedu.ulisboa.specifications.domain.services.CurriculumLineServices;
 import org.fenixedu.ulisboa.specifications.domain.services.enrollment.EnrolmentServices;
 import org.fenixedu.ulisboa.specifications.domain.services.evaluation.EnrolmentEvaluationServices;
+import org.fenixedu.ulisboa.specifications.domain.studentCurriculum.CurriculumAggregatorServices;
 import org.fenixedu.ulisboa.specifications.ui.FenixeduUlisboaSpecificationsBaseController;
 import org.fenixedu.ulisboa.specifications.ui.FenixeduUlisboaSpecificationsController;
 import org.fenixedu.ulisboa.specifications.util.ULisboaSpecificationsUtil;
@@ -145,9 +146,7 @@ public class LooseEvaluationController extends FenixeduUlisboaSpecificationsBase
                         .filter(ev -> ev.getExecutionPeriod() == semester || ev.getEnrolment().getExecutionPeriod() == semester)
                         .filter(ev -> ev.getCompetenceCourseMarkSheet() == null && ev.getMarkSheet() == null)
                         .filter(ev -> EvaluationServices
-                                .findEnrolmentCourseEvaluations(ev.getEnrolment(), ev.getEvaluationSeason(),
-                                        semester)
-                                .isEmpty()
+                                .findEnrolmentCourseEvaluations(ev.getEnrolment(), ev.getEvaluationSeason(), semester).isEmpty()
                                 || AcademicAccessRule.isProgramAccessibleToFunction(AcademicOperationType.ENROLMENT_WITHOUT_RULES,
                                         studentCurricularPlan.getDegree(), Authenticate.getUser()))
                         .sorted(c1.thenComparing(c2).thenComparing(DomainObjectUtil.COMPARATOR_BY_ID))
@@ -229,7 +228,7 @@ public class LooseEvaluationController extends FenixeduUlisboaSpecificationsBase
         evaluation.confirmSubmission(person, "");
         EnrolmentEvaluationServices.onStateChange(evaluation);
         EnrolmentServices.updateState(enrolment);
-        CurriculumLineServices.updateAggregatorEvaluation(enrolment);
+        CurriculumAggregatorServices.updateAggregatorEvaluation(enrolment);
     }
 
     private static final String _DELETE_URI = "/delete/";
@@ -265,7 +264,7 @@ public class LooseEvaluationController extends FenixeduUlisboaSpecificationsBase
         }
 
         EnrolmentServices.updateState(enrolment);
-        CurriculumLineServices.updateAggregatorEvaluation(enrolment);
+        CurriculumAggregatorServices.updateAggregatorEvaluation(enrolment);
     }
 
     private static final String _ANNUL_URI = "/annul/";

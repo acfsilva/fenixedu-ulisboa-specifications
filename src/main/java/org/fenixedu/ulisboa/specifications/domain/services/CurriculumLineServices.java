@@ -28,8 +28,6 @@ import org.fenixedu.commons.i18n.LocalizedString;
 import org.fenixedu.commons.i18n.LocalizedString.Builder;
 import org.fenixedu.ulisboa.specifications.domain.evaluation.EvaluationComparator;
 import org.fenixedu.ulisboa.specifications.domain.studentCurriculum.CreditsReasonType;
-import org.fenixedu.ulisboa.specifications.domain.studentCurriculum.CurriculumAggregator;
-import org.fenixedu.ulisboa.specifications.domain.studentCurriculum.CurriculumAggregatorServices;
 import org.fenixedu.ulisboa.specifications.domain.studentCurriculum.CurriculumLineExtendedInformation;
 import org.fenixedu.ulisboa.specifications.util.ULisboaSpecificationsUtil;
 import org.joda.time.YearMonthDay;
@@ -78,21 +76,6 @@ abstract public class CurriculumLineServices {
     static public Integer getCurricularYear(final CurriculumLine curriculumLine) {
         return curriculumLine.getExtendedInformation() == null ? null : curriculumLine.getExtendedInformation()
                 .getCurricularYear();
-    }
-
-    static public void updateAggregatorEvaluation(final CurriculumLine line) {
-        if (CurriculumAggregatorServices.isAggregationsActive(line.getExecutionYear())) {
-
-            // CAN NOT update evaluations on it self, so WAS explicitly searching for an entry and it's aggregator
-            // BUT with different configurations per year we cannot depend on direct relation:
-            // AggregatorEntry for a given CurriculumLine may not be of the same year of the Aggregator to be updated
-            final CurriculumAggregator aggregator = CurriculumAggregatorServices.getAggregationRoots(line).stream()
-                    .filter(i -> i.getCurricularCourse() != line.getDegreeModule()).findFirst().orElse(null);
-
-            if (aggregator != null) {
-                aggregator.updateEvaluation(line.getStudentCurricularPlan());
-            }
-        }
     }
 
     static public void setExcludedFromAverage(CurriculumLine curriculumLine, Boolean excludedFromAverage) {

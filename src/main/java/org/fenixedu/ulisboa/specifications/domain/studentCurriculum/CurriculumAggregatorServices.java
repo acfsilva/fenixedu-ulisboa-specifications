@@ -80,6 +80,21 @@ abstract public class CurriculumAggregatorServices {
                 && (year == null || getCurriculumAggregatorFirstExecutionYear().isBeforeOrEquals(year));
     }
 
+    static public void updateAggregatorEvaluation(final CurriculumLine line) {
+        if (isAggregationsActive(line.getExecutionYear())) {
+
+            // CAN NOT update evaluations on it self, so WAS explicitly searching for an entry and it's aggregator
+            // BUT with different configurations per year we cannot depend on direct relation:
+            // AggregatorEntry for a given CurriculumLine may not be of the same year of the Aggregator to be updated
+            final CurriculumAggregator aggregator = getAggregationRoots(line).stream()
+                    .filter(i -> i.getCurricularCourse() != line.getDegreeModule()).findFirst().orElse(null);
+
+            if (aggregator != null) {
+                aggregator.updateEvaluation(line.getStudentCurricularPlan());
+            }
+        }
+    }
+
     static public CurriculumAggregator getAggregationRoot(final CurriculumLine line) {
         final Set<CurriculumAggregator> aggregationRoots = getAggregationRoots(line);
         return aggregationRoots.isEmpty() ? null : aggregationRoots.iterator().next();

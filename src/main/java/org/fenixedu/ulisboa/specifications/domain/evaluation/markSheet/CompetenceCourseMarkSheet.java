@@ -78,7 +78,6 @@ import org.fenixedu.ulisboa.specifications.domain.evaluation.season.EvaluationSe
 import org.fenixedu.ulisboa.specifications.domain.evaluation.season.rule.EvaluationSeasonRule;
 import org.fenixedu.ulisboa.specifications.domain.evaluation.season.rule.GradeScaleValidator;
 import org.fenixedu.ulisboa.specifications.domain.exceptions.ULisboaSpecificationsDomainException;
-import org.fenixedu.ulisboa.specifications.domain.services.CurriculumLineServices;
 import org.fenixedu.ulisboa.specifications.domain.services.enrollment.EnrolmentServices;
 import org.fenixedu.ulisboa.specifications.domain.services.evaluation.EnrolmentEvaluationServices;
 import org.fenixedu.ulisboa.specifications.domain.studentCurriculum.CurriculumAggregator;
@@ -1015,7 +1014,7 @@ public class CompetenceCourseMarkSheet extends CompetenceCourseMarkSheet_Base {
             // depends on EnrolmentEvaluationState
             EnrolmentEvaluationServices.onStateChange(evaluation);
             EnrolmentServices.updateState(evaluation.getEnrolment());
-            CurriculumLineServices.updateAggregatorEvaluation(evaluation.getEnrolment());
+            CurriculumAggregatorServices.updateAggregatorEvaluation(evaluation.getEnrolment());
         }
     }
 
@@ -1060,7 +1059,7 @@ public class CompetenceCourseMarkSheet extends CompetenceCourseMarkSheet_Base {
         // this was once performed in revertToEdition; depends on EnrolmentEvaluationState
         EnrolmentEvaluationServices.onStateChange(evaluation);
         EnrolmentServices.updateState(evaluation.getEnrolment());
-        CurriculumLineServices.updateAggregatorEvaluation(evaluation.getEnrolment());
+        CurriculumAggregatorServices.updateAggregatorEvaluation(evaluation.getEnrolment());
     }
 
     static public void removeEnrolmentEvaluationData(final EnrolmentEvaluation evaluation) {
@@ -1087,7 +1086,7 @@ public class CompetenceCourseMarkSheet extends CompetenceCourseMarkSheet_Base {
         // FIXME hack for bypass evaluation method type issues
         if (FenixFramework.isDomainObjectValid(evaluation)) {
             EnrolmentServices.updateState(evaluation.getEnrolment());
-            CurriculumLineServices.updateAggregatorEvaluation(evaluation.getEnrolment());
+            CurriculumAggregatorServices.updateAggregatorEvaluation(evaluation.getEnrolment());
         }
     }
 
