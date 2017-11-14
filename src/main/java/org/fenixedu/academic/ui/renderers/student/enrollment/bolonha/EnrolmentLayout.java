@@ -408,7 +408,6 @@ public class EnrolmentLayout extends BolonhaStudentEnrolmentLayout {
 
             // qubExtension, Aggregation Info
             final HtmlTableCell aggregationCell = htmlTableRow.createCell();
-            aggregationCell.setClasses(" center ");
             aggregationCell.setBody(
                     generateAggregationInfo(degreeModuleToEvaluate.getContext(), getStudentCurricularPlan(), executionSemester));
 
@@ -692,7 +691,7 @@ public class EnrolmentLayout extends BolonhaStudentEnrolmentLayout {
 
         // qubExtension, Aggregation Info
         final HtmlTableCell aggregationCell = htmlTableRow.createCell();
-        aggregationCell.setClasses(" center se_enrolled ");
+        aggregationCell.setClasses(" se_enrolled ");
         aggregationCell.setBody(generateAggregationInfo(enrolment));
 
         // qubExtension, Curricular Period
