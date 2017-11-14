@@ -32,6 +32,7 @@ import java.util.SortedSet;
 
 import org.fenixedu.academic.domain.CurricularCourse;
 import org.fenixedu.academic.domain.DegreeCurricularPlan;
+import org.fenixedu.academic.domain.DomainObjectUtil;
 import org.fenixedu.academic.domain.Enrolment;
 import org.fenixedu.academic.domain.EnrolmentEvaluation;
 import org.fenixedu.academic.domain.EvaluationSeason;
@@ -43,7 +44,6 @@ import org.fenixedu.academic.domain.StudentCurricularPlan;
 import org.fenixedu.academic.domain.degreeStructure.Context;
 import org.fenixedu.academic.domain.exceptions.DomainException;
 import org.fenixedu.academic.domain.student.Registration;
-import org.fenixedu.academic.domain.student.curriculum.ICurriculumEntry;
 import org.fenixedu.academic.domain.studentCurriculum.CurriculumLine;
 import org.fenixedu.academic.domain.studentCurriculum.Dismissal;
 import org.fenixedu.academic.util.Bundle;
@@ -392,12 +392,12 @@ public class CurriculumAggregator extends CurriculumAggregator_Base {
 
         if (plan != null) {
 
-            final SortedSet<ICurriculumEntry> lines = Sets.newTreeSet((x, y) -> {
+            final SortedSet<CurriculumLine> lines = Sets.newTreeSet((x, y) -> {
                 final int c = x.getExecutionYear().compareTo(y.getExecutionYear());
-                return c == 0 ? ICurriculumEntry.COMPARATOR_BY_ID.compare(x, y) : c;
+                return c == 0 ? DomainObjectUtil.COMPARATOR_BY_ID.compare(x, y) : c;
             });
             for (final CurriculumAggregatorEntry entry : getEntriesSet()) {
-                lines.addAll(entry.getCurriculumEntries(plan, false));
+                lines.add(entry.getCurriculumLine(plan, false));
             }
 
             if (!lines.isEmpty()) {
