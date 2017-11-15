@@ -1014,7 +1014,7 @@ public class CompetenceCourseMarkSheet extends CompetenceCourseMarkSheet_Base {
             // depends on EnrolmentEvaluationState
             EnrolmentEvaluationServices.onStateChange(evaluation);
             EnrolmentServices.updateState(evaluation.getEnrolment());
-            CurriculumAggregatorServices.updateAggregatorEvaluation(evaluation.getEnrolment());
+            CurriculumAggregatorServices.updateAggregatorEvaluation(evaluation);
         }
     }
 
@@ -1059,7 +1059,7 @@ public class CompetenceCourseMarkSheet extends CompetenceCourseMarkSheet_Base {
         // this was once performed in revertToEdition; depends on EnrolmentEvaluationState
         EnrolmentEvaluationServices.onStateChange(evaluation);
         EnrolmentServices.updateState(evaluation.getEnrolment());
-        CurriculumAggregatorServices.updateAggregatorEvaluation(evaluation.getEnrolment());
+        CurriculumAggregatorServices.updateAggregatorEvaluation(evaluation);
     }
 
     static public void removeEnrolmentEvaluationData(final EnrolmentEvaluation evaluation) {
@@ -1086,7 +1086,7 @@ public class CompetenceCourseMarkSheet extends CompetenceCourseMarkSheet_Base {
         // FIXME hack for bypass evaluation method type issues
         if (FenixFramework.isDomainObjectValid(evaluation)) {
             EnrolmentServices.updateState(evaluation.getEnrolment());
-            CurriculumAggregatorServices.updateAggregatorEvaluation(evaluation.getEnrolment());
+            CurriculumAggregatorServices.updateAggregatorEvaluation(evaluation);
         }
     }
 

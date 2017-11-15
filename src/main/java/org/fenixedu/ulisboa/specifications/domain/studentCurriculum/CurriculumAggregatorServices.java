@@ -36,6 +36,7 @@ import java.util.stream.Collectors;
 import org.fenixedu.academic.domain.CompetenceCourse;
 import org.fenixedu.academic.domain.CurricularCourse;
 import org.fenixedu.academic.domain.Enrolment;
+import org.fenixedu.academic.domain.EnrolmentEvaluation;
 import org.fenixedu.academic.domain.EvaluationSeason;
 import org.fenixedu.academic.domain.ExecutionSemester;
 import org.fenixedu.academic.domain.ExecutionYear;
@@ -80,17 +81,27 @@ abstract public class CurriculumAggregatorServices {
                 && (year == null || getCurriculumAggregatorFirstExecutionYear().isBeforeOrEquals(year));
     }
 
-    static public void updateAggregatorEvaluation(final CurriculumLine line) {
-        if (isAggregationsActive(line.getExecutionYear())) {
+    static public void updateAggregatorEvaluation(final EnrolmentEvaluation entryEvaluation) {
+        final Enrolment entryLine = entryEvaluation.getEnrolment();
+        updateAggregatorEvaluation(entryLine, entryEvaluation);
+    }
+
+    static public void updateAggregatorEvaluation(final CurriculumLine entryLine) {
+        updateAggregatorEvaluation(entryLine, (EnrolmentEvaluation) null);
+    }
+
+    static public void updateAggregatorEvaluation(final CurriculumLine entryLine, final EnrolmentEvaluation entryEvaluation) {
+
+        if (isAggregationsActive(entryLine.getExecutionYear())) {
 
             // CAN NOT update evaluations on it self, so WAS explicitly searching for an entry and it's aggregator
             // BUT with different configurations per year we cannot depend on direct relation:
             // AggregatorEntry for a given CurriculumLine may not be of the same year of the Aggregator to be updated
-            final CurriculumAggregator aggregator = getAggregationRoots(line).stream()
-                    .filter(i -> i.getCurricularCourse() != line.getDegreeModule()).findFirst().orElse(null);
+            final CurriculumAggregator aggregator = getAggregationRoots(entryLine).stream()
+                    .filter(i -> i.getCurricularCourse() != entryLine.getDegreeModule()).findFirst().orElse(null);
 
             if (aggregator != null) {
-                aggregator.updateEvaluation(line.getStudentCurricularPlan());
+                aggregator.updateEvaluation(entryLine, entryEvaluation);
             }
         }
     }

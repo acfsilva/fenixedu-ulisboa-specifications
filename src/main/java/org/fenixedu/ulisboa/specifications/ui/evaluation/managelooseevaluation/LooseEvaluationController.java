@@ -228,7 +228,7 @@ public class LooseEvaluationController extends FenixeduUlisboaSpecificationsBase
         evaluation.confirmSubmission(person, "");
         EnrolmentEvaluationServices.onStateChange(evaluation);
         EnrolmentServices.updateState(enrolment);
-        CurriculumAggregatorServices.updateAggregatorEvaluation(enrolment);
+        CurriculumAggregatorServices.updateAggregatorEvaluation(evaluation);
     }
 
     private static final String _DELETE_URI = "/delete/";
@@ -251,20 +251,21 @@ public class LooseEvaluationController extends FenixeduUlisboaSpecificationsBase
     }
 
     @Atomic
-    private void deleteLooseEvaluation(EnrolmentEvaluation enrolmentEvaluation) {
-        final Enrolment enrolment = enrolmentEvaluation.getEnrolment();
+    private void deleteLooseEvaluation(final EnrolmentEvaluation evaluation) {
+        final Enrolment enrolment = evaluation.getEnrolment();
+        final EvaluationSeason season = evaluation.getEvaluationSeason();
 
-        enrolmentEvaluation.setEnrolmentEvaluationState(EnrolmentEvaluationState.TEMPORARY_OBJ);
-        EnrolmentEvaluationServices.onStateChange(enrolmentEvaluation);
+        evaluation.setEnrolmentEvaluationState(EnrolmentEvaluationState.TEMPORARY_OBJ);
+        EnrolmentEvaluationServices.onStateChange(evaluation);
 
-        if (FenixFramework.isDomainObjectValid(enrolmentEvaluation)) {
+        if (FenixFramework.isDomainObjectValid(evaluation)) {
             //TODO: hack since listeners can cause object to be deleted
             //logic should be two-step, first change to Temporary and if it still exists delete
-            enrolmentEvaluation.delete();
+            evaluation.delete();
         }
 
         EnrolmentServices.updateState(enrolment);
-        CurriculumAggregatorServices.updateAggregatorEvaluation(enrolment);
+        CurriculumAggregatorServices.updateAggregatorEvaluation(enrolment, (EnrolmentEvaluation) null);
     }
 
     private static final String _ANNUL_URI = "/annul/";

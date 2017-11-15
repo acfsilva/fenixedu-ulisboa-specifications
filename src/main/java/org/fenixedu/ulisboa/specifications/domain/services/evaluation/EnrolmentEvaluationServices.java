@@ -93,7 +93,7 @@ public class EnrolmentEvaluationServices {
             evaluation.setEnrolmentEvaluationState(EnrolmentEvaluationState.ANNULED_OBJ);
             EnrolmentEvaluationServices.onStateChange(evaluation);
             EnrolmentServices.updateState(enrolment);
-            CurriculumAggregatorServices.updateAggregatorEvaluation(enrolment);
+            CurriculumAggregatorServices.updateAggregatorEvaluation(evaluation);
         }
     }
 
@@ -105,7 +105,7 @@ public class EnrolmentEvaluationServices {
             evaluation.setEnrolmentEvaluationState(EnrolmentEvaluationState.TEMPORARY_OBJ);
             EnrolmentEvaluationServices.onStateChange(evaluation);
             EnrolmentServices.updateState(enrolment);
-            CurriculumAggregatorServices.updateAggregatorEvaluation(enrolment);
+            CurriculumAggregatorServices.updateAggregatorEvaluation(evaluation);
         }
     }
 

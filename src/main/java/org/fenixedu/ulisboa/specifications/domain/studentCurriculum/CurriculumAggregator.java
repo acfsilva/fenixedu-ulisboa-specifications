@@ -29,6 +29,7 @@ import java.math.BigDecimal;
 import java.util.Date;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.stream.Collectors;
 
 import org.fenixedu.academic.domain.CurricularCourse;
 import org.fenixedu.academic.domain.DegreeCurricularPlan;
@@ -290,34 +291,72 @@ public class CurriculumAggregator extends CurriculumAggregator_Base {
         return getEnrolmentType() == AggregationEnrolmentType.ONLY_AGGREGATOR_ENTRIES;
     }
 
-    public void updateEvaluation(final StudentCurricularPlan plan) {
+    protected void updateEvaluation(final CurriculumLine entryLine, final EnrolmentEvaluation entryEvaluation) {
 
-        final Enrolment enrolment = getLastEnrolment(plan);
+        final Enrolment enrolment = getLastEnrolment(entryLine.getStudentCurricularPlan());
         if (enrolment == null) {
             return;
         }
 
+        final EnrolmentEvaluation evaluation = getEnrolmentEvaluation(enrolment, entryEvaluation);
+        if (evaluation == null) {
+            return;
+        }
+
         if (isWithMarkSheet()) {
-            updateMarkSheets(enrolment);
+            updateMarkSheets(evaluation);
 
         } else if (isWithoutMarkSheet()) {
-            updateGrade(enrolment);
+            updateGrade(evaluation);
         }
     }
 
-    private void updateGrade(final Enrolment enrolment) {
-        final StudentCurricularPlan plan = enrolment.getStudentCurricularPlan();
+    private EnrolmentEvaluation getEnrolmentEvaluation(final Enrolment enrolment, final EnrolmentEvaluation entryEvaluation) {
+        EnrolmentEvaluation result = null;
 
-        // get EnrolmentEvaluation
-        final EnrolmentEvaluation evaluation;
-        if (enrolment.getEvaluationsSet().isEmpty()) {
-            evaluation = new EnrolmentEvaluation(enrolment, getEvaluationSeason());
-        } else if (enrolment.getEvaluationsSet().size() != 1) {
-            throw new DomainException("error.CurriculumAggregator.unexpected.number.of.EnrolmentEvaluations");
-        } else {
-            evaluation = enrolment.getEvaluationsSet().iterator().next();
-            evaluation.setEvaluationSeason(getEvaluationSeason());
+        final EvaluationSeason season = getEvaluationSeason(enrolment, entryEvaluation);
+        final Set<EnrolmentEvaluation> evaluations =
+                enrolment.getEvaluationsSet().stream().filter(i -> i.getEvaluationSeason() == season).collect(Collectors.toSet());
+
+        if (evaluations.isEmpty() && season != getEvaluationSeason()) {
+            result = new EnrolmentEvaluation(enrolment, season);
+            if (season.isImprovement()) {
+                result.setExecutionPeriod(entryEvaluation.getExecutionPeriod());
+            }
+
+        } else if (evaluations.size() == 1) {
+            result = evaluations.iterator().next();
+
+            // TODO legidio, this method is being used for updating both grades and sheets and unfortunately sheets don't convert the default enrolment evaluation
+            // removing this for now, since before this we are filtering sheets by evaluation season
+            //
+            // seems redundant, but we want to convert the default season evaluation if that's the one we found
+            // result.setEvaluationSeason(season);
         }
+
+        return result;
+    }
+
+    private EvaluationSeason getEvaluationSeason(final Enrolment enrolment, final EnrolmentEvaluation entryEvaluation) {
+        EvaluationSeason result = null;
+
+        final EvaluationSeason entrySeason = entryEvaluation == null ? null : entryEvaluation.getEvaluationSeason();
+        if (entrySeason != null && entrySeason.isImprovement()
+                && enrolment.getExecutionYear() != entryEvaluation.getExecutionPeriod().getExecutionYear()) {
+
+            result = EvaluationSeason.readSpecialAuthorizations().filter(i -> i.isImprovement()).findAny().orElse(null);
+        }
+
+        if (result == null) {
+            result = getEvaluationSeason();
+        }
+
+        return result;
+    }
+
+    private void updateGrade(final EnrolmentEvaluation evaluation) {
+        final Enrolment enrolment = evaluation.getEnrolment();
+        final StudentCurricularPlan plan = enrolment.getStudentCurricularPlan();
 
         final Grade conclusionGrade = calculateConclusionGrade(plan);
         final Date conclusionDate = calculateConclusionDate(plan);
@@ -343,14 +382,17 @@ public class CurriculumAggregator extends CurriculumAggregator_Base {
         EnrolmentServices.updateState(enrolment);
     }
 
-    private void updateMarkSheets(final Enrolment enrolment) {
+    private void updateMarkSheets(final EnrolmentEvaluation evaluation) {
+        final Enrolment enrolment = evaluation.getEnrolment();
         final StudentCurricularPlan plan = enrolment.getStudentCurricularPlan();
 
-        final Grade conclusionGrade = calculateConclusionGrade(plan);
+        final CompetenceCourseMarkSheet markSheet = evaluation.getCompetenceCourseMarkSheet();
+        if (markSheet == null) {
+            return;
+        }
 
-        // TODO legidio, does it make sense to create change requests for ALL mark sheets, regardless of the evaluation season?
-        enrolment.getEvaluationsSet().stream().map(i -> i.getCompetenceCourseMarkSheet())
-                .forEach(i -> updateMarkSheet(i, enrolment, conclusionGrade));
+        final Grade conclusionGrade = calculateConclusionGrade(plan);
+        updateMarkSheet(markSheet, enrolment, conclusionGrade);
     }
 
     private void updateMarkSheet(final CompetenceCourseMarkSheet markSheet, final Enrolment enrolment,
