@@ -190,7 +190,7 @@ abstract public class CurriculumAggregatorServices {
     }
 
     static public CurriculumAggregator getAggregator(final CurriculumLine line) {
-        return getAggregator(getContext(line), line.getExecutionYear());
+        return line == null ? null : getAggregator(getContext(line), line.getExecutionYear());
     }
 
     static public CurriculumAggregator getAggregator(final Context context, final ExecutionYear year) {
