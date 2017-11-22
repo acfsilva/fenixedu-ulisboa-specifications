@@ -198,7 +198,7 @@ abstract public class CurriculumAggregatorServices {
 
         if (context != null && year != null) {
 
-            result = context.getCurriculumAggregatorSet().stream().filter(i -> i.getSince().isBeforeOrEquals(year))
+            result = context.getCurriculumAggregatorSet().stream().filter(i -> i.isValid(year))
                     .max(Comparator.comparing(CurriculumAggregator::getSince)).orElse(null);
         }
 
@@ -237,7 +237,7 @@ abstract public class CurriculumAggregatorServices {
 
         if (context != null && year != null) {
 
-            result = context.getCurriculumAggregatorEntrySet().stream().filter(i -> i.getSince().isBeforeOrEquals(year))
+            result = context.getCurriculumAggregatorEntrySet().stream().filter(i -> i.isValid(year))
                     .max(Comparator.comparing(CurriculumAggregatorEntry::getSince)).orElse(null);
         }
 

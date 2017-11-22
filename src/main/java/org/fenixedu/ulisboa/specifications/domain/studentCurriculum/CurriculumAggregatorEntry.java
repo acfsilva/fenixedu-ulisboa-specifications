@@ -143,10 +143,6 @@ public class CurriculumAggregatorEntry extends CurriculumAggregatorEntry_Base {
         super.deleteDomainObject();
     }
 
-    public ExecutionYear getSince() {
-        return getAggregator().getSince();
-    }
-
     public String getDescription() {
         return ULisboaSpecificationsUtil.bundle("CurriculumAggregatorEntry");
     }
@@ -185,8 +181,20 @@ public class CurriculumAggregatorEntry extends CurriculumAggregatorEntry_Base {
         return getContext().getParentCourseGroup().getParentDegreeCurricularPlan();
     }
 
+    public ExecutionYear getSince() {
+        return getAggregator().getSince();
+    }
+
     public boolean isValid(final ExecutionYear year) {
-        return year != null && getSince().isBeforeOrEquals(year);
+        return getAggregator().isValid(year);
+    }
+
+    public CurriculumAggregator getAggregatorPreviousConfig() {
+        return getAggregator().getPreviousConfig();
+    }
+
+    public CurriculumAggregator getAggregatorNextConfig() {
+        return getAggregator().getNextConfig();
     }
 
     public CurricularCourse getCurricularCourse() {
@@ -222,7 +230,7 @@ public class CurriculumAggregatorEntry extends CurriculumAggregatorEntry_Base {
         return line != null && line.isConcluded();
     }
 
-    protected CurriculumLine getCurriculumLine(final StudentCurricularPlan plan, final boolean approved) {
+    public CurriculumLine getCurriculumLine(final StudentCurricularPlan plan, final boolean approved) {
         final CurriculumLine result;
 
         final DegreeModule degreeModule = getCurricularCourse();
@@ -234,10 +242,8 @@ public class CurriculumAggregatorEntry extends CurriculumAggregatorEntry_Base {
             } else {
 
                 result = plan.getAllCurriculumLines().stream().filter(i -> i.getDegreeModule() == getCurricularCourse())
-                        .max((x, y) -> {
-                            final int c = x.getExecutionYear().compareTo(y.getExecutionYear());
-                            return c == 0 ? Comparator.comparing(CurriculumLine::getExternalId).compare(x, y) : c;
-                        }).orElse(null);
+                        .max(Comparator.comparing(CurriculumLine::getExecutionYear).thenComparing(CurriculumLine::getExternalId))
+                        .orElse(null);
             }
 
         } else {

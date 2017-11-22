@@ -26,6 +26,7 @@
 package org.fenixedu.ulisboa.specifications.domain.studentCurriculum;
 
 import java.math.BigDecimal;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.Set;
 import java.util.SortedSet;
@@ -33,7 +34,6 @@ import java.util.stream.Collectors;
 
 import org.fenixedu.academic.domain.CurricularCourse;
 import org.fenixedu.academic.domain.DegreeCurricularPlan;
-import org.fenixedu.academic.domain.DomainObjectUtil;
 import org.fenixedu.academic.domain.Enrolment;
 import org.fenixedu.academic.domain.EnrolmentEvaluation;
 import org.fenixedu.academic.domain.EvaluationSeason;
@@ -259,7 +259,28 @@ public class CurriculumAggregator extends CurriculumAggregator_Base {
     }
 
     public boolean isValid(final ExecutionYear year) {
-        return year != null && getSince().isBeforeOrEquals(year);
+        if (year != null) {
+
+            if (getSince().isBeforeOrEquals(year)) {
+
+                final CurriculumAggregator nextConfig = getNextConfig();
+                if (nextConfig == null || !nextConfig.isValid(year)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    public CurriculumAggregator getPreviousConfig() {
+        return getContext().getCurriculumAggregatorSet().stream().filter(i -> i.getSince().isBefore(getSince()))
+                .max(Comparator.comparing(CurriculumAggregator::getSince)).orElse(null);
+    }
+
+    public CurriculumAggregator getNextConfig() {
+        return getContext().getCurriculumAggregatorSet().stream().filter(i -> i.getSince().isAfter(getSince()))
+                .min(Comparator.comparing(CurriculumAggregator::getSince)).orElse(null);
     }
 
     public CurricularCourse getCurricularCourse() {
@@ -434,10 +455,8 @@ public class CurriculumAggregator extends CurriculumAggregator_Base {
 
         if (plan != null) {
 
-            final SortedSet<CurriculumLine> lines = Sets.newTreeSet((x, y) -> {
-                final int c = x.getExecutionYear().compareTo(y.getExecutionYear());
-                return c == 0 ? DomainObjectUtil.COMPARATOR_BY_ID.compare(x, y) : c;
-            });
+            final SortedSet<CurriculumLine> lines = Sets.newTreeSet(
+                    Comparator.comparing(CurriculumLine::getExecutionYear).thenComparing(CurriculumLine::getExternalId));
             for (final CurriculumAggregatorEntry entry : getEntriesSet()) {
                 lines.add(entry.getCurriculumLine(plan, false));
             }
