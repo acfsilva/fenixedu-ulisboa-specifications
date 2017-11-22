@@ -63,7 +63,10 @@ import com.google.common.collect.Sets;
 
 abstract public class CurriculumAggregatorServices {
 
-    static private final Logger logger = LoggerFactory.getLogger(CurriculumAggregatorServices.class);
+    static final private Logger logger = LoggerFactory.getLogger(CurriculumAggregatorServices.class);
+
+    static final public Comparator<CurriculumLine> LINE_COMPARATOR =
+            Comparator.comparing(CurriculumLine::getExecutionPeriod).thenComparing(CurriculumLine::getExternalId);
 
     static private ExecutionYear firstExecutionYear = null;
 
@@ -139,7 +142,7 @@ abstract public class CurriculumAggregatorServices {
                             .collect(Collectors.toList());
 
                     final CurriculumLine rootLine =
-                            possibleLines.stream().max(Comparator.comparing(CurriculumLine::getExecutionPeriod)).orElse(null);
+                            possibleLines.stream().max(CurriculumAggregatorServices.LINE_COMPARATOR).orElse(null);
                     final CurriculumAggregator root = getAggregator(rootLine);
                     if (root != null) {
                         result.add(root);
@@ -229,7 +232,7 @@ abstract public class CurriculumAggregatorServices {
     }
 
     static public CurriculumAggregatorEntry getAggregatorEntry(final CurriculumLine line) {
-        return getAggregatorEntry(getContext(line), line.getExecutionYear());
+        return line == null ? null : getAggregatorEntry(getContext(line), line.getExecutionYear());
     }
 
     static public CurriculumAggregatorEntry getAggregatorEntry(final Context context, final ExecutionYear year) {

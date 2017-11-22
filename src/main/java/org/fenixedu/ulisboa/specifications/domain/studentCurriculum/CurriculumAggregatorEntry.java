@@ -241,9 +241,9 @@ public class CurriculumAggregatorEntry extends CurriculumAggregatorEntry_Base {
 
             } else {
 
-                result = plan.getAllCurriculumLines().stream().filter(i -> i.getDegreeModule() == getCurricularCourse())
-                        .max(Comparator.comparing(CurriculumLine::getExecutionYear).thenComparing(CurriculumLine::getExternalId))
-                        .orElse(null);
+                result = plan.getAllCurriculumLines().stream().filter(
+                        i -> i.getDegreeModule() == getCurricularCourse() && getSince().isBeforeOrEquals(i.getExecutionYear()))
+                        .max(CurriculumAggregatorServices.LINE_COMPARATOR).orElse(null);
             }
 
         } else {

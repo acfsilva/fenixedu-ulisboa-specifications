@@ -455,10 +455,12 @@ public class CurriculumAggregator extends CurriculumAggregator_Base {
 
         if (plan != null) {
 
-            final SortedSet<CurriculumLine> lines = Sets.newTreeSet(
-                    Comparator.comparing(CurriculumLine::getExecutionYear).thenComparing(CurriculumLine::getExternalId));
+            final SortedSet<CurriculumLine> lines = Sets.newTreeSet(CurriculumAggregatorServices.LINE_COMPARATOR);
             for (final CurriculumAggregatorEntry entry : getEntriesSet()) {
-                lines.add(entry.getCurriculumLine(plan, false));
+                final CurriculumLine line = entry.getCurriculumLine(plan, false);
+                if (line != null) {
+                    lines.add(line);
+                }
             }
 
             if (!lines.isEmpty()) {
